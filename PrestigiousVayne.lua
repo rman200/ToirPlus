@@ -1,12 +1,12 @@
--------------------------------------<INITI>-------------------------------------
+-------------------------------------<INIT>-------------------------------------
 
 IncludeFile("Vector.lua")
-local myHero = GetMyChamp()
-if GetChampName(myHero) ~= "Vayne" then return end
-local myHeroPos = Vector({GetPosX(myHero), GetPosY(myHero), GetPosZ(myHero)})
-local mousePos = Vector({GetCursorPosX(myHero), GetCursorPosY(myHero), GetCursorPosZ(myHero)})
-SearchAllChamp()
-local _heroes = pObjChamp
+local myHero = function() return GetMyChamp() end
+if GetChampName(myHero()) ~= "Vayne" then return end
+local myHeroPos = Vector({GetPosX(myHero()), GetPosY(myHero()), GetPosZ(myHero())})
+local mousePos = Vector({GetCursorPosX(myHero()), GetCursorPosY(myHero()), GetCursorPosZ(myHero())})
+local _enemies = function() return GetEnemies() end
+local _heroes = function() return GetHeroes() end
 SetLuaCombo(true)
 
  
@@ -31,15 +31,24 @@ local SpellR = {Range = 1000, Delay = 0.50}
 -------------------------------------</INIT>-------------------------------------
 
 -------------------------------------<Base Functions>-------------------------------------
-local _enemies = {}
+local function GetHeroes()
+	
+	SearchAllChamp()
+	local t = pObjChamp	
+	return t
+end
+
 local function GetEnemies()
-	for k,v in pairs(_heroes) do
-		if IsEnemy(v) then
-			table.insert(_enemies, v)
+	local t = {}
+	local h = GetHeroes()
+	for k,v in pairs(h) do
+		if IsEnemy(v) and IsChampion(v) then
+			table.insert(t, v)
 		end
 	end
+	return t
 end
-GetEnemies()
+
 
 local function GetTarget(range)	
 	return GetEnemyChampCanKillFastest(range)
@@ -79,7 +88,7 @@ local function IsValidTarget(target, range)
 end
 
 local function IsUnderEnemyTurret(pos)			--Will Only work near myHero
-	GetAllObjectAroundAnObject(myHero, 2000)
+	GetAllObjectAroundAnObject(myHero(), 2000)
 
 	local objects = pObject	
 	for k,v in pairs(objects) do
@@ -95,7 +104,7 @@ local function IsUnderEnemyTurret(pos)			--Will Only work near myHero
 end
 
 local function IsUnderAllyTurret(pos)			--Will Only work near myHero
-	GetAllObjectAroundAnObject(myHero, 2000)
+	GetAllObjectAroundAnObject(myHero(), 2000)
 	local objects = pObject
 	for k,v in pairs(objects) do
 		if IsTurret(v) and IsDead(v) == false and IsAlly(v) and GetTargetableToTeam(v) == 4 then
@@ -135,7 +144,8 @@ end
 local function UpdateBuff()										--Check if need delay
 	SpellW.Target = nil
 	SpellW.Count = nil
-	for k,v in pairs(_enemies) do  
+	local t = GetEnemies()
+	for k,v in pairs(t) do  
 		local var = GetBuffCount(v, "VayneSilveredDebuff")   --Check if buffstack		
         if var ~= nil and var ~= 0 then 
         	SpellW.Target = v
@@ -149,7 +159,7 @@ local function IsCollisionable(vector)
 end
 
 local function IsCondemnable(target)								
-	local pP = Vector({GetPosX(myHero),GetPosY(myHero),GetPosZ(myHero)})
+	local pP = Vector({GetPosX(myHero()),GetPosY(myHero()),GetPosZ(myHero())})
 	local eP = Vector({GetPosX(target),GetPosY(target),GetPosZ(target)})
 	local pD = 450
 	if (IsCollisionable(eP:Extend(pP,-pD)) or IsCollisionable(eP:Extend(pP, -pD/2)) or IsCollisionable(eP:Extend(pP, -pD/3))) then	
@@ -157,7 +167,7 @@ local function IsCondemnable(target)
 			return true	
 		end	
 		
-		local enemiesCount = CountEnemyChampAroundObject(myHero, 1200)	
+		local enemiesCount = CountEnemyChampAroundObject(myHero(), 1200)	
 		if 	enemiesCount > 1 and enemiesCount <= 3 then	
 			for i=15, pD, 75 do	
 				vector3 = eP:Extend(pP, -i)										
@@ -185,18 +195,26 @@ end
 
 local function IsDangerousPosition(pos)
 	if IsUnderEnemyTurret(pos) then return true end
-	
 
-	for k,v in pairs(_enemies) do 
+	
+	local t = GetEnemies()
+
+	for k,v in pairs(t) do 
+		
 		local vPos = Vector({GetPosX(v), GetPosY(v), GetPosZ(v)})
-    	if not IsDead(v) and IsEnemy(v) and GetDistanceSqr(pos, vPos) < 350 * 350 then return true end      
+    	if IsDead(v) == false and IsEnemy(v) and GetDistanceSqr(pos, vPos) < 350 * 350 then return true end      
     end
    	return false
 end
 
 
-local function GetSmartTumblePos(target)	
-	if not IsDangerousPosition(mousePos) then return mousePos end
+local function GetSmartTumblePos(target)
+		
+	if IsDangerousPosition(mousePos) == false then 
+		local rangePos = (mousePos - myHeroPos):Normalized() * 300
+		if IsDangerousPosition(rangePos) == false then return mousePos end
+	end
+
 
 	local targetPos = Vector({GetPosX(target), GetPosY(target), GetPosZ(target)})
 	local p0 = myHeroPos	
@@ -211,23 +229,23 @@ local function GetSmartTumblePos(target)
 	[8] = p0 + Vector(212,0,-212)}
 
 	for i=1,#points do		
-		if not IsDangerousPosition(points[i]) and GetDistanceSqr(points[i], targetPos) < 500 * 500 then return points[i] end
+		if IsDangerousPosition(points[i]) == false and GetDistanceSqr(points[i], targetPos) < 500 * 500 then return points[i] end
 	end
 end
 
 
 local function AntiGapCloser()	
-	local target = CountEnemyChampAroundObject(myHero, 600)	
-	if IsCasting(myHero) or CanCast(E) == false or Setting_IsComboUseE() == false or target == nil or target == 0 then return end	
-	
-    for k,v in pairs(_enemies) do             
+	local target = CountEnemyChampAroundObject(myHero(), 600)	
+	if IsCasting(myHero()) or CanCast(E) == false or Setting_IsComboUseE() == false or target == nil or target == 0 then return end	
+	local t = GetEnemies()
+    for k,v in pairs(t) do             
         if IsValidTarget(v, 550) then
         	if IsDashing(v) then
         		local dashFrom = Vector({GetPosX(v), GetPosY(v), GetPosZ(v)})
 				local dashTo =  Vector({GetMoveDestPointPosX(v), GetMoveDestPointPosY(v), GetMoveDestPointPosZ(v)}) 
-				if myHeroPos - dashFrom > myHeroPos - dashTo then
+				if (myHeroPos - dashFrom) > (myHeroPos - dashTo) then
         			CastSpellTarget(v, E)
-         			break
+        			return         			
          		end						
 			end
         end
@@ -238,7 +256,8 @@ end
 --[[				--Placeholder
 function Interrupt()
 	if not Ready(_E) then return end
-	for k,v in pairs(_enemies) do
+	local t = GetEnemies()
+	for k,v in pairs(t) do
 		local targetPos = Vector({GetPosX(v), GetPosY(v), GetPosZ(v)})
 		if not IsDead(v) and IsEnemy(v) and GetDistanceSqr(targetPos, myHeroPos) < 550 * 550 then
 			if IsCasting(v) then
@@ -251,6 +270,23 @@ function Interrupt()
 		end
 	end
 end]]
+local function StayInvisible()
+	local var = GetBuffByName(myHero(), "vaynetumblefade")
+	if (var == nil or var == 0) or EnemiesAround(myHero(), 350) == 0 then
+		--__PrintTextGame("Enabled atk")
+		SetLuaBasicAttackOnly(false) 
+		return 
+	end
+
+	local t = GetEnemies()
+    for k,v in pairs(t) do 
+    	if GetAttackRange(v) < 400 and IsValidTarget(v, 350) then    		 
+    		SetLuaBasicAttackOnly(true)
+    		--__PrintTextGame("Disabled atk")
+    		return    		
+    	end
+    end
+end
 
 
 
@@ -262,20 +298,22 @@ end]]
 -------------------------------------<Main Script>-------------------------------------
 
 
-local function Combo()
+local function Combo()	
 	local target = GetTarget(550)
+	
 
 	
-	if IsValidTarget(target,550) == false or IsCasting(myHero) then return end
+	if IsValidTarget(target,550) == false or IsCasting(myHero()) then return end
 	
-	if GetPercentHP(target) < 80 then
-		BOTRK(target)
-	end
+	--if GetPercentHP(target) < 80 then
+	--	BOTRK(target)
+	--end
 	
-	if Setting_IsComboUseR() and EnemiesAround(myHero, 800) >= 2 and CanCast(R) then
-    	CastSpellTarget(myHero, R)
+	if Setting_IsComboUseR() and EnemiesAround(myHero(), 800) >= 2 and CanCast(R) then
+		
+    	CastSpellToPos(GetCursorPosX(),GetCursorPosZ(),R)
     end
-
+    
     if Setting_IsComboUseQ() and CanCast(Q) then
     	local qPos = GetSmartTumblePos(target)
     	if qPos ~= nil then 
@@ -287,7 +325,7 @@ end
 
 local function Harass()
 	local target = GetTarget(550)
-	if IsValidTarget(target,550) == false or IsCasting(myHero) then return end
+	if IsValidTarget(target,550) == false or IsCasting(myHero()) then return end
 
 
     if Setting_IsHarassUseQ() and CanCast(Q) then
@@ -305,15 +343,19 @@ local function Harass()
 	
 end
 
-local function AutoCondemn()	
-	local target = CountEnemyChampAroundObject(myHero, 600)	
-	if IsCasting(myHero) or CanCast(E) == false or Setting_IsComboUseE() == false or target == nil or target == 0 then return end	
-	   
-    for k,v in pairs(_enemies) do             
+local function AutoCondemn()
+
+	local target = CountEnemyChampAroundObject(myHero(), 600)
+	
+	if IsCasting(myHero()) or CanCast(E) == false or Setting_IsComboUseE() == false or target == nil or target == 0 then return end	
+	
+	local t = GetEnemies()
+    for k,v in pairs(t) do 
+
         if IsValidTarget(v, 550) then
 
         	if IsCondemnable(v) then
-        		CastSpellTarget(v, E)
+        		CastSpellTarget(v, E)        		
          		break						
 			end
         end
@@ -324,11 +366,17 @@ end
 function OnTick()
 	
 	
-	if IsDead(myHero) then return end
-	myHeroPos = Vector({GetPosX(myHero), GetPosY(myHero), GetPosZ(myHero)})
-	mousePos = Vector({GetCursorPosX(myHero), GetCursorPosY(myHero), GetCursorPosZ(myHero)})
-	UpdateBuff()
 	
+	--__PrintTextGame(tostring(SpellW.Count))
+	
+	if IsDead(myHero()) then return end
+	myHeroPos = Vector({GetPosX(myHero()), GetPosY(myHero()), GetPosZ(myHero())})
+	mousePos = Vector({GetCursorPosX(myHero()), GetCursorPosY(myHero()), GetCursorPosZ(myHero())})
+	UpdateBuff()
+
+	StayInvisible()
+	--AntiGapCloser()
+		
 	AutoCondemn()
 	--KillSteal()
 	

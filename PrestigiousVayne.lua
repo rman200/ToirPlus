@@ -125,6 +125,13 @@ local function GetPercentHP(target)
 	return GetHealthPoint(target)/GetHealthPointMax(target) * 100
 end
 
+local function IsAfterAttack()
+    if CanMove() and not CanAttack() then 
+        return true
+    else
+        return false
+end
+
 -------------------------------------</Base Functions>-------------------------------------
 
 
@@ -316,7 +323,7 @@ local function Combo()
     
     if Setting_IsComboUseQ() and CanCast(Q) then
     	local qPos = GetSmartTumblePos(target)
-    	if qPos ~= nil and CanMove() then 
+    	if qPos ~= nil and IsAfterAttack() then 
     		CastSpellToPos(qPos.x,qPos.z,Q)
      	end
     end	
@@ -330,7 +337,7 @@ local function Harass()
 
     if Setting_IsHarassUseQ() and CanCast(Q) then
     	local qPos = GetSmartTumblePos(target)
-    	if qPos ~= nil and CanMove() then 
+    	if qPos ~= nil and IsAfterAttack() then 
     		CastSpellToPos(qPos.x,qPos.z, Q)
     	end
     end

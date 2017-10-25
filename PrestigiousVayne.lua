@@ -130,6 +130,7 @@ local function IsAfterAttack()
         return true
     else
         return false
+    end
 end
 
 -------------------------------------</Base Functions>-------------------------------------

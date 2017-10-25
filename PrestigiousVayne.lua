@@ -316,7 +316,7 @@ local function Combo()
     
     if Setting_IsComboUseQ() and CanCast(Q) then
     	local qPos = GetSmartTumblePos(target)
-    	if qPos ~= nil then 
+    	if qPos ~= nil and CanMove() then 
     		CastSpellToPos(qPos.x,qPos.z,Q)
      	end
     end	
@@ -330,7 +330,7 @@ local function Harass()
 
     if Setting_IsHarassUseQ() and CanCast(Q) then
     	local qPos = GetSmartTumblePos(target)
-    	if qPos ~= nil then 
+    	if qPos ~= nil and CanMove() then 
     		CastSpellToPos(qPos.x,qPos.z, Q)
     	end
     end

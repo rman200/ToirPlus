@@ -281,7 +281,7 @@ end
 
 
 local function GetSmartTumblePos(target)
-	local mousePos = Vector(GetCursorPos()) 
+	local mousePos = Vector(GetMousePos()) 
 	local myHeroPos = Vector(GetPos(GetMyChamp())) or Vector(0,0,0)
 	local possiblePos = myHeroPos:Extended(mousePos, 300) or Vector(0,0,0)
 	DrawCircleGame(possiblePos.x, possiblePos.y, possiblePos.z, 100, Lua_ARGB(255, 255, 255, 255))
@@ -332,18 +332,21 @@ local function GetSmartTumblePos(target)
 end
 
 
-local function AntiGapCloser()		--nil vector bug!!!
+local function AntiGapCloser()		
 	local target = CountEnemyChampAroundObject(myHero(), 1000)	
 	if IsCasting(myHero()) or CanCast(E) == false or Setting_IsComboUseE() == false or target == nil or target == 0 then return end	
 	local t = GetEnemies()
     for k,v in pairs(t) do  
     	local enemy = GetAIHero(v)          
-        if enemy.IsValid and enemy.Distance <= GetMyRange() then
+        if enemy.IsValid and enemy.Distance <= GetMyRange() and enemy.IsVisible then
         	if enemy.IsDash then
         		local myHeroPos = Vector(GetPos(GetMyChamp())) or Vector(0,0,0)
+        		--__PrintTextGame("myHeroPos " .. tostring(myHeroPos))
         		local dashFrom = Vector(GetPos(v))	or Vector(0,0,0)
+        		--__PrintTextGame("dashFrom " .. tostring(dashFrom))
 				local dashTo =  Vector(GetDestPos(v)) or Vector(0,0,0)
-				local angle = math.atan( 50/(myHeroPos - dashFrom):Len() )							-- 50 is the bounding radius approx.
+				--__PrintTextGame("dashTo " .. tostring(dashTo))
+				local angle = math.atan( 50/((myHeroPos - dashFrom):Len()) )							-- 50 is the bounding radius approx.
 				if (myHeroPos - dashFrom):Angle(dashTo - dashFrom) <= angle then
         			CastSpellTarget(v, E)
         			return         			
@@ -460,6 +463,7 @@ local function Harass()
 end
 
 local function AutoCondemn()
+	
 
 	local target = CountEnemyChampAroundObject(myHero(), 1000)
 
@@ -494,11 +498,10 @@ function _OnUpdate()
 
 
 	if IsTyping() then return end --Wont Orbwalk while chatting
-	local nKeyCode = GetKeyCode()
-	--sleep(0.01)
-	if nKeyCode == SpaceKeyCode then
+	
+	if GetKeyPress(SpaceKeyCode) ~= 0 then
 		Combo()
-	elseif nKeyCode == CKeyCode then
+	elseif GetKeyPress(CKeyCode) ~= 0 then
 		SetLuaHarass(true)
 		Harass()
 	end

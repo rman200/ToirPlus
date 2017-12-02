@@ -1,11 +1,6 @@
 IncludeFile("Lib\\TOIR_SDK.lua")
 
 
-
-
-local objTable= {}
-local updateTicker = os.clock()
-
 function DrawTextToScreen(text,v1,xoff,yoff,color)
 	local x = xoff or 0
 	local y = yoff or 0

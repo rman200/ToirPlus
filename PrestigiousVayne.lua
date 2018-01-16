@@ -200,7 +200,7 @@ SpellW.Target = nil
     end
 ]]
 
-local function _OnUpdateBuff(unit,buff,stacks)										--Check if need delay
+local function _OnUpdateBuff(unit,buff,stacks)										
 	if string.lower(buff.Name) == "vaynesilvereddebuff" then
 		SpellW.Target = unit.Addr
 		SpellW.Count = stacks				
@@ -211,7 +211,7 @@ local function _OnUpdateBuff(unit,buff,stacks)										--Check if need delay
 	end
 end
 
-local function _OnRemoveBuff(unit,buff)										--Check if need delay
+local function _OnRemoveBuff(unit,buff)										
 	if string.lower(buff.Name) == "vaynesilvereddebuff" then
 		SpellW.Target = nil
 		SpellW.Count = nil		
@@ -430,7 +430,7 @@ local function Combo()
 
 	if Setting_IsComboUseR() and EnemiesAround(myHero(), 1000) >= 2 and CanCast(R) then
 
-    	CastSpellToPos(GetCursorPosX(),GetCursorPosZ(),R)
+    	CastSpellToPos(GetMousePosX(),GetMousePosZ(),R)
     end
 
     if Setting_IsComboUseQ() and CanCast(Q) then
